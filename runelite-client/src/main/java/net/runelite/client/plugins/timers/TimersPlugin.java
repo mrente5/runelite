@@ -481,6 +481,14 @@ public class TimersPlugin extends Plugin
 			return;
 		}
 
+		if (event.getMenuOption().contains("Teleport")
+			&& (event.getId() == ItemID.GROUP_IRON_HELM
+			|| event.getId() == ItemID.HARDCORE_GROUP_IRON_HELM))
+		{
+			createGameTimer(HOME_TELEPORT);
+			return;
+		}
+
 		if (event.getMenuOption().contains("Invigorate")
 			&& event.getId() == ItemID.IMBUED_HEART)
 		{
@@ -971,6 +979,7 @@ public class TimersPlugin extends Plugin
 		}
 
 		lastAnimation = client.getLocalPlayer().getAnimation();
+		log.debug(String.valueOf(lastAnimation));
 	}
 
 	@Subscribe
