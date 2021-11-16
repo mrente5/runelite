@@ -76,6 +76,7 @@ import static net.runelite.client.plugins.timers.GameTimer.*;
 import net.runelite.client.ui.overlay.infobox.InfoBoxManager;
 import net.runelite.client.util.RSTimeUnit;
 import org.apache.commons.lang3.ArrayUtils;
+import static net.runelite.api.widgets.WidgetInfo.*;
 
 @PluginDescriptor(
 	name = "Timers",
@@ -435,6 +436,13 @@ public class TimersPlugin extends Plugin
 		}
 	}
 
+	private int getEquipmentItemID(MenuOptionClicked event) {
+		return client.getWidget(
+				TO_GROUP(event.getParam1()),
+				TO_CHILD(event.getParam1())
+		).getChild(1).getItemId();
+	}
+
 	@Subscribe
 	public void onMenuOptionClicked(MenuOptionClicked event)
 	{
@@ -491,7 +499,17 @@ public class TimersPlugin extends Plugin
 			createGameTimer(EXSUPERANTIFIRE);
 			return;
 		}
-		
+
+		if (config.showHomeMinigameTeleports()
+				&& event.getMenuOption().contains("Teleport")
+				&& (getEquipmentItemID(event) == ItemID.HARDCORE_GROUP_IRON_HELM
+				|| getEquipmentItemID(event) == ItemID.GROUP_IRON_HELM
+				|| event.getId() == ItemID.HARDCORE_GROUP_IRON_HELM
+				|| event.getId() == ItemID.GROUP_IRON_HELM)) {
+			createGameTimer(HOME_TELEPORT);
+			return;
+		}
+
 		TeleportWidget teleportWidget = TeleportWidget.of(event.getParam1());
 		if (teleportWidget != null)
 		{
