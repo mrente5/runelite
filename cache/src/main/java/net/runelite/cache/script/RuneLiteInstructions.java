@@ -22,52 +22,14 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package net.runelite.api;
+package net.runelite.cache.script;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-
-/**
- * Client side only, content-developer integers
- *
- * VarCInts are stored entirely in memory, or locally on a user's
- * machine in the preferences2.dat file depending on how Jagex
- * configured the variable
- */
-@AllArgsConstructor
-@Getter
-public enum VarClientInt
+public class RuneLiteInstructions extends Instructions implements RuneLiteOpcodes
 {
-	TOOLTIP_TIMEOUT(1),
-
-	/**
-	 * 0 = no tooltip displayed
-	 * 1 = tooltip displaying
-	 */
-	TOOLTIP_VISIBLE(2),
-
-	/**
-	 * Current message layer mode
-	 * @see net.runelite.api.vars.InputType
-	 */
-	INPUT_TYPE(5),
-
-	/**
-	 * The game sets this to the same value as {@link #CAMERA_ZOOM_RESIZABLE_VIEWPORT}
-	 */
-	CAMERA_ZOOM_FIXED_VIEWPORT(73),
-	CAMERA_ZOOM_RESIZABLE_VIEWPORT(74),
-
-	MEMBERSHIP_STATUS(103),
-
-	INVENTORY_TAB(171),
-
-	/**
-	 * time to block keypresses til
-	 */
-	BLOCK_KEYPRESS(187),
-
-	WORLD_MAP_SEARCH_FOCUSED(190);
-
-	private final int index;
+	@Override
+	public void init()
+	{
+		super.init();
+		add(RUNELITE_EXECUTE, "runelite_callback");
+	}
 }
