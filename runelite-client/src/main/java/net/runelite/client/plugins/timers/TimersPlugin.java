@@ -39,7 +39,6 @@ import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.api.Constants;
 import net.runelite.api.EquipmentInventorySlot;
-import net.runelite.api.GameState;
 import net.runelite.api.InventoryID;
 import net.runelite.api.Item;
 import net.runelite.api.ItemContainer;
@@ -62,7 +61,6 @@ import net.runelite.api.events.GraphicChanged;
 import net.runelite.api.events.ItemContainerChanged;
 import net.runelite.api.events.MenuOptionClicked;
 import net.runelite.api.events.NpcDespawned;
-import net.runelite.api.events.StatChanged;
 import net.runelite.api.events.VarbitChanged;
 import net.runelite.api.widgets.Widget;
 import static net.runelite.api.widgets.WidgetInfo.PVP_WORLD_SAFE_ZONE;
@@ -78,6 +76,7 @@ import static net.runelite.client.plugins.timers.GameTimer.*;
 import net.runelite.client.ui.overlay.infobox.InfoBoxManager;
 import net.runelite.client.util.RSTimeUnit;
 import org.apache.commons.lang3.ArrayUtils;
+import static net.runelite.api.widgets.WidgetInfo.*;
 
 @PluginDescriptor(
 	name = "Timers",
@@ -105,7 +104,6 @@ public class TimersPlugin extends Plugin
 	private static final String FROZEN_MESSAGE = "<col=ef1020>You have been frozen!</col>";
 	private static final String GAUNTLET_ENTER_MESSAGE = "You enter the Gauntlet.";
 	private static final String GOD_WARS_ALTAR_MESSAGE = "you recharge your prayer.";
-	private static final String IMBUED_HEART_READY_MESSAGE = "<col=ef1020>Your imbued heart has regained its magical power.</col>";
 	private static final String MAGIC_IMBUE_EXPIRED_MESSAGE = "Your Magic Imbue charge has ended.";
 	private static final String MAGIC_IMBUE_MESSAGE = "You are charged to combine runes!";
 	private static final String STAFF_OF_THE_DEAD_SPEC_EXPIRED_MESSAGE = "Your protection fades away";
@@ -153,14 +151,14 @@ public class TimersPlugin extends Plugin
 	private int lastPoisonVarp;
 	private int lastPvpVarb;
 	private int lastCorruptionVarb;
+	private int lastImbuedHeartVarb;
+	private boolean imbuedHeartTimerActive;
 	private int nextPoisonTick;
 	private WorldPoint lastPoint;
 	private TeleportWidget lastTeleportClicked;
 	private int lastAnimation;
 	private boolean widgetHiddenChangedOnPvpWorld;
 	private ElapsedTimer tzhaarTimer;
-	private int imbuedHeartClickTick = -1;
-	private int lastBoostedMagicLevel = -1;
 
 	@Inject
 	private ItemManager itemManager;
@@ -186,10 +184,6 @@ public class TimersPlugin extends Plugin
 	@Override
 	public void startUp()
 	{
-		if (client.getGameState() == GameState.LOGGED_IN)
-		{
-			lastBoostedMagicLevel = client.getBoostedSkillLevel(Skill.MAGIC);
-		}
 	}
 
 	@Override
@@ -205,8 +199,8 @@ public class TimersPlugin extends Plugin
 		nextPoisonTick = 0;
 		removeTzhaarTimer();
 		staminaTimer = null;
-		imbuedHeartClickTick = -1;
-		lastBoostedMagicLevel = -1;
+		imbuedHeartTimerActive = false;
+		lastImbuedHeartVarb = 0;
 	}
 
 	@Subscribe
@@ -218,6 +212,7 @@ public class TimersPlugin extends Plugin
 		int poisonVarp = client.getVar(VarPlayer.POISON);
 		int pvpVarb = client.getVar(Varbits.PVP_SPEC_ORB);
 		int corruptionCooldownVarb = client.getVar(Varbits.CORRUPTION_COOLDOWN);
+		int imbuedHeartCooldownVarb = client.getVar(Varbits.IMBUED_HEART_COOLDOWN);
 
 		if (lastRaidVarb != raidVarb)
 		{
@@ -308,6 +303,22 @@ public class TimersPlugin extends Plugin
 
 			lastPvpVarb = pvpVarb;
 		}
+
+		if (lastImbuedHeartVarb != imbuedHeartCooldownVarb && config.showImbuedHeart())
+		{
+			if (imbuedHeartCooldownVarb == 0)
+			{
+				removeGameTimer(IMBUEDHEART);
+				imbuedHeartTimerActive = false;
+			}
+			else if (!imbuedHeartTimerActive)
+			{
+				createGameTimer(IMBUEDHEART, Duration.of(10L * imbuedHeartCooldownVarb, RSTimeUnit.GAME_TICKS));
+				imbuedHeartTimerActive = true;
+			}
+
+			lastImbuedHeartVarb = imbuedHeartCooldownVarb;
+		}
 	}
 
 	@Subscribe
@@ -375,6 +386,7 @@ public class TimersPlugin extends Plugin
 		if (!config.showImbuedHeart())
 		{
 			removeGameTimer(IMBUEDHEART);
+			imbuedHeartTimerActive = false;
 		}
 
 		if (!config.showStaffOfTheDead())
@@ -422,6 +434,13 @@ public class TimersPlugin extends Plugin
 		{
 			createTzhaarTimer();
 		}
+	}
+
+	private int getEquipmentItemID(MenuOptionClicked event) {
+		return client.getWidget(
+				TO_GROUP(event.getParam1()),
+				TO_CHILD(event.getParam1())
+		).getChild(1).getItemId();
 	}
 
 	@Subscribe
@@ -481,10 +500,14 @@ public class TimersPlugin extends Plugin
 			return;
 		}
 
-		if (event.getMenuOption().contains("Invigorate")
-			&& event.getId() == ItemID.IMBUED_HEART)
-		{
-			imbuedHeartClickTick = client.getTickCount();
+		if (config.showHomeMinigameTeleports()
+				&& event.getMenuOption().contains("Teleport")
+				&& (getEquipmentItemID(event) == ItemID.HARDCORE_GROUP_IRON_HELM
+				|| getEquipmentItemID(event) == ItemID.GROUP_IRON_HELM
+				|| event.getId() == ItemID.HARDCORE_GROUP_IRON_HELM
+				|| event.getId() == ItemID.GROUP_IRON_HELM)) {
+			createGameTimer(HOME_TELEPORT);
+			return;
 		}
 
 		TeleportWidget teleportWidget = TeleportWidget.of(event.getParam1());
@@ -634,11 +657,6 @@ public class TimersPlugin extends Plugin
 		if (config.showAntiFire() && message.equals(SUPER_ANTIFIRE_EXPIRED_MESSAGE))
 		{
 			removeGameTimer(SUPERANTIFIRE);
-		}
-
-		if (config.showImbuedHeart() && message.equals(IMBUED_HEART_READY_MESSAGE))
-		{
-			removeGameTimer(IMBUEDHEART);
 		}
 
 		if (config.showPrayerEnhance() && message.startsWith("You drink some of your") && message.contains("prayer enhance"))
@@ -922,7 +940,6 @@ public class TimersPlugin extends Plugin
 				}
 				break;
 			case LOGIN_SCREEN:
-				lastBoostedMagicLevel = -1;
 				// fall through
 			case HOPPING:
 				// pause tzhaar timer if logged out without pausing
@@ -971,6 +988,7 @@ public class TimersPlugin extends Plugin
 		}
 
 		lastAnimation = client.getLocalPlayer().getAnimation();
+		log.debug(String.valueOf(lastAnimation));
 	}
 
 	@Subscribe
@@ -1098,37 +1116,6 @@ public class TimersPlugin extends Plugin
 		{
 			infoBoxManager.removeIf(t -> t instanceof TimerTimer && ((TimerTimer) t).getTimer().isRemovedOnDeath());
 		}
-	}
-
-	@Subscribe
-	public void onStatChanged(StatChanged statChanged)
-	{
-		if (statChanged.getSkill() != Skill.MAGIC)
-		{
-			return;
-		}
-
-		final int boostedMagicLevel = statChanged.getBoostedLevel();
-
-		if (imbuedHeartClickTick < 0
-			|| client.getTickCount() > imbuedHeartClickTick + 3 // allow for 2 ticks of lag
-			|| !config.showImbuedHeart())
-		{
-			lastBoostedMagicLevel = boostedMagicLevel;
-			return;
-		}
-
-		final int boostAmount = boostedMagicLevel - statChanged.getLevel();
-		final int boostChange = boostedMagicLevel - lastBoostedMagicLevel;
-		final int heartBoost = 1 + (statChanged.getLevel() / 10);
-
-		if ((boostAmount == heartBoost || (lastBoostedMagicLevel != -1 && boostChange == heartBoost))
-			&& boostChange > 0)
-		{
-			createGameTimer(IMBUEDHEART);
-		}
-
-		lastBoostedMagicLevel = boostedMagicLevel;
 	}
 
 	private void createStaminaTimer()

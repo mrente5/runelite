@@ -1951,4 +1951,13 @@ public interface Client extends GameEngine
 	 */
 	@Nullable
 	ClanSettings getClanSettings(int clanId);
+
+	void setUnlockedFps(boolean unlock);
+	void setUnlockedFpsTarget(int fps);
+
+	/**
+	 * Gets the ambient sound effects
+	 * @return
+	 */
+	Deque<AmbientSoundEffect> getAmbientSoundEffects();
 }
