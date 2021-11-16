@@ -481,11 +481,15 @@ public class TimersPlugin extends Plugin
 			return;
 		}
 
-		if (event.getMenuOption().contains("Teleport")
-			&& (event.getId() == ItemID.GROUP_IRON_HELM
-			|| event.getId() == ItemID.HARDCORE_GROUP_IRON_HELM))
+		log.debug("IDS: " + String.valueOf(event.getId()));
+
+		if (event.getMenuOption().contains("Teleport"))
 		{
-			createGameTimer(HOME_TELEPORT);
+			System.out.println(event.getId());
+			System.out.println(event.getSelectedItemIndex());
+			System.out.println(event.getMenuAction().getId());
+			System.out.println(event.getMenuAction().name());
+			System.out.println(event.getMenuOption());
 			return;
 		}
 
