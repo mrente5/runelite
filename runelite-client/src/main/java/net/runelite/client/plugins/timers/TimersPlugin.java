@@ -455,7 +455,10 @@ public class TimersPlugin extends Plugin
 		}
 	}
 
-
+	/**
+	 * Called when a Menu Option is clicked.
+	 * @param event contains the details from the MenuOptionClicked interaction.
+	 */
 	@Subscribe
 	public void onMenuOptionClicked(MenuOptionClicked event)
 	{
@@ -970,7 +973,10 @@ public class TimersPlugin extends Plugin
 		}
 	}
 
-
+	/**
+	 * Called when a player animation occurs.
+	 * @param event contains the details from the AnimationChanged event.
+	 */
 	@Subscribe
 	public void onAnimationChanged(AnimationChanged event)
 	{

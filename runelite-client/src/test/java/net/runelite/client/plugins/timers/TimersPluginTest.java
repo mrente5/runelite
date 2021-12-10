@@ -531,6 +531,10 @@ public class TimersPluginTest
 		assertEquals(GameTimer.RESURRECT_THRALL_COOLDOWN, infoBox.getTimer());
 	}
 
+	/**
+	 * Tests that teleporting with the Hardcore Group Ironman helmet
+	 * from the equipment tab triggers the Home Teleport timer.
+	 */
 	@Test
 	public void testHardcoreGroupIronHomeTeleportFromEquipment()
 	{
@@ -561,6 +565,10 @@ public class TimersPluginTest
 		assertEquals(GameTimer.HOME_TELEPORT, infoBox.getTimer());
 	}
 
+	/**
+	 * Tests that teleporting with the Group Ironman helmet
+	 * from the inventory tab triggers the Home Teleport timer.
+	 */
 	@Test
 	public void testGroupIronHomeTeleportFromInventory()
 	{
